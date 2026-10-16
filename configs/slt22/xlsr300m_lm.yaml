@@ -1,0 +1,52 @@
+# SLT22 large-margin fine-tuning (yaml/Baseline_lm.yaml): max_frames 600, margin 0.5, batch 40.
+# python train.py --config configs/slt22/xlsr300m_lm.yaml --initial_model <stage-1>/model/last.ckpt
+# The official run continues stage 1 (same save_path), so the StepLR decay continues: lr_epoch_offset = 15.
+# Number of LM epochs: 3 (paper: "3 extra epochs for large-margin fine-tuning").
+ssl: xlsr300m
+save_path: /kaggle/working/exps/xlsr300m_slt22_lm
+train_list: /kaggle/input/datasets/hongvitchugo/vi-sred26-train/train_split.txt
+train_path: /kaggle/input/datasets/hongvitchugo/vi-sred26-train/Vi-SRED26-Train/data
+eval_list:  /kaggle/input/datasets/hongvitchugo/vi-sred26-train/val_trials.txt
+eval_path:  /kaggle/input/datasets/hongvitchugo/vi-sred26-train/Vi-SRED26-Train/data
+musan_path: /kaggle/input/datasets/nhattruongdev/musan-noise
+rir_path:   /kaggle/input/datasets/nhattruongdev/rirs-noises
+speed_perturb: [0.9, 1.1]   # NOT in the official recipes: kept so that teacher and ReDimNet student share the 5130 classes (KD)
+narrowband_prob: 0.0
+amp: true                   # T4: fp16 autocast (SLT22 has --mixedprec; wespeaker_ssl_public enable_amp: False)
+n_cpu: 4
+log_interval: 20
+keep_last: 1
+seed: 20211202
+head_nb: 64
+compression_dim: 128
+embed_dim: 256
+ssl_trainable: layers
+ssl_grad_mult: 1.0
+layerdrop: null
+input_norm: utterance
+head: aam
+m: 0.5
+s: 30
+optimizer: adamw
+weight_decay: 0.01
+lr_scheduler: step
+lr_mhfa: 0.005
+lr_transformer: 0.00002
+llrd_factor: 1.0
+lr_decay: 0.95
+lr_epoch_offset: 15
+reg_type: slt22
+reg_weight: 0.01
+max_epoch: 3
+test_step: 1
+grad_clip: 0
+crop_sec: [6.015]
+aug_mode: kaldi
+aug_probs: [1, 1, 1, 1, 1, 1]
+batch_size: 40
+accum_steps: 1
+eval_mode: both
+eval_sec: 4.015
+num_eval: 5
+eval_max_sec: 43.75
+select_score: cos

@@ -1,0 +1,59 @@
+# wespeaker_ssl_public (branch hubert) examples/voxceleb/v4/conf/MHFA/MHFA_Large_Frozen_FT.yaml, applied to wavlm_large.
+# Recipe: frozen -> ft (--initial_model frozen last.ckpt) -> lmft (--initial_model ft last.ckpt).
+# Original: 4 GPUs (run_MHFA_Large.sh num_gpus=4); batch per GPU 128 / 32 / 16 -> effective batch 512 / 128 / 64 here,
+# LR multiplied by scale_ratio = effective batch / 64 exactly as train_hubert.py.
+ssl: wavlm_large
+save_path: /kaggle/working/exps/wavlm_large_v4_ft
+train_list: /kaggle/input/datasets/hongvitchugo/vi-sred26-train/train_split.txt
+train_path: /kaggle/input/datasets/hongvitchugo/vi-sred26-train/Vi-SRED26-Train/data
+eval_list:  /kaggle/input/datasets/hongvitchugo/vi-sred26-train/val_trials.txt
+eval_path:  /kaggle/input/datasets/hongvitchugo/vi-sred26-train/Vi-SRED26-Train/data
+musan_path: /kaggle/input/datasets/nhattruongdev/musan-noise
+rir_path:   /kaggle/input/datasets/nhattruongdev/rirs-noises
+speed_perturb: [0.9, 1.1]   # NOT in the official recipes: kept so that teacher and ReDimNet student share the 5130 classes (KD)
+narrowband_prob: 0.0
+amp: true                   # T4: fp16 autocast (SLT22 has --mixedprec; wespeaker_ssl_public enable_amp: False)
+n_cpu: 4
+log_interval: 20
+keep_last: 1
+seed: 716
+head_nb: 64
+compression_dim: 128
+embed_dim: 256
+ssl_trainable: all            # frozen: feature_grad_mult 0 -> no_grad; ft/lmft: whole model, cnn_scale 1.0
+ssl_grad_mult: 0.1            # feature_grad_mult
+layerdrop: 0.05               # layer_drop
+input_norm: utterance
+head: aam_intertopk_subcenter # projection arc_margin_intertopk_subcenter (K 3, mp 0.06, k_top 5)
+s: 32
+m: 0.2
+m_schedule: true              # MarginScheduler, increase_type exp
+m_initial: 0.2
+m_final: 0.2
+m_increase_start_epoch: 1
+m_fix_start_epoch: 1
+optimizer: adamw
+weight_decay: 0.0000001
+momentum: 0.9
+lr_scheduler: exp_wespeaker   # ExponentialDecrease, warm_from_zero
+initial_lr: 0.00005
+final_lr: 0.000001
+warm_up_epoch: 1
+warm_from_zero: true
+lr_scale_base: 64
+reg_type: none
+max_epoch: 5
+test_step: 1
+grad_clip: 0
+# data: num_frms 300 (10 ms) = 3.0 s, aug_prob 0.6, filter min/max_num_frames 100/800 = 1-8 s
+crop_sec: [3.0]
+aug_mode: wespeaker
+aug_prob: 0.6
+min_dur: 1.0
+max_dur: 8.0
+batch_size: 128               # effective batch of the original run; the notebook sets batch_size/accum_steps to fit
+accum_steps: 1
+# evaluation (README): cosine after subtracting the mean embedding of training data (+ AS-norm, not implemented here)
+eval_mode: full
+eval_max_sec: 20.0
+select_score: center

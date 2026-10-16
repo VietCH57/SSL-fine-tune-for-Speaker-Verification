@@ -1,0 +1,58 @@
+# SLT22 official MHFA code (github.com/JunyiPeng00/SLT22_MultiHead-Factorized-Attentive-Pooling)
+# trainSpeakerNet.py defaults + yaml/Baseline.yaml, applied to wavlm_large. Single stage: joint fine-tuning.
+ssl: wavlm_large
+save_path: /kaggle/working/exps/wavlm_large_slt22
+train_list: /kaggle/input/datasets/hongvitchugo/vi-sred26-train/train_split.txt
+train_path: /kaggle/input/datasets/hongvitchugo/vi-sred26-train/Vi-SRED26-Train/data
+eval_list:  /kaggle/input/datasets/hongvitchugo/vi-sred26-train/val_trials.txt
+eval_path:  /kaggle/input/datasets/hongvitchugo/vi-sred26-train/Vi-SRED26-Train/data
+musan_path: /kaggle/input/datasets/nhattruongdev/musan-noise
+rir_path:   /kaggle/input/datasets/nhattruongdev/rirs-noises
+speed_perturb: [0.9, 1.1]   # NOT in the official recipes: kept so that teacher and ReDimNet student share the 5130 classes (KD)
+narrowband_prob: 0.0
+amp: true                   # T4: fp16 autocast (SLT22 has --mixedprec; wespeaker_ssl_public enable_amp: False)
+n_cpu: 4
+log_interval: 20
+keep_last: 1
+seed: 20211202                # trainSpeakerNet.py default
+# model (models/Baseline/Spk_Encoder.py): MHFA compression 128, nOut 256; heads 64 (paper, best for Large)
+head_nb: 64
+compression_dim: 128
+embed_dim: 256
+ssl_trainable: layers         # only encoder.layers in the optimiser, CNN under no_grad
+ssl_grad_mult: 1.0
+layerdrop: null               # checkpoint value (cfg of the pre-trained model)
+input_norm: utterance         # preprocessor_config.json do_normalize: true (the MHFA code feeds raw waveform: set none to match it)
+# loss (loss/aamsoftmax.py): margin 0.2, scale 30
+head: aam
+m: 0.2
+s: 30
+# optimisation (SpeakerNet.py + optimizer/adamw.py + scheduler/steplr.py + Baseline.yaml)
+optimizer: adamw
+weight_decay: 0.01            # torch.optim.AdamW default (optimizer/adamw.py passes only lr)
+lr_scheduler: step
+lr_mhfa: 0.005                # LR_MHFA
+lr_transformer: 0.00002       # LR_Transformer
+llrd_factor: 1.0              # LLRD_factor
+lr_decay: 0.95                # lr_decay, StepLR every test_interval (1) epoch
+reg_type: slt22
+reg_weight: 0.01              # weight_finetuning_reg
+max_epoch: 15
+test_step: 1
+grad_clip: 0
+# data (DatasetLoader.py): max_frames 300 -> 48240 samples, voxceleb_trainer augmentation, uniform over 6 types
+crop_sec: [3.015]
+aug_mode: kaldi
+aug_probs: [1, 1, 1, 1, 1, 1]
+snr_noise: [0, 15]
+snr_speech: [13, 20]
+snr_music: [5, 15]
+num_speech: [3, 8]
+batch_size: 120               # Baseline.yaml batch_size (per GPU in the original multi-GPU run; here: effective batch, see README)
+accum_steps: 1                # set by the notebook from probe_memory.py
+# evaluation (SpeakerNet.evaluateFromList): mean of full-utterance score (<= 700000 samples) and 5 crops of eval_frames 400
+eval_mode: both
+eval_sec: 4.015
+num_eval: 5
+eval_max_sec: 43.75
+select_score: cos

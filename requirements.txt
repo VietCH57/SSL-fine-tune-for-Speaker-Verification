@@ -1,0 +1,10 @@
+torch>=2.0
+transformers>=4.40   # tested with 5.19; layer outputs are taken with hooks, independent of version
+torchaudio>=2.0
+numpy
+scipy
+scikit-learn
+soundfile
+tqdm
+pyyaml
+pandas   # only for --eval_meta
