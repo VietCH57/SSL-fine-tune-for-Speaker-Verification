@@ -181,7 +181,10 @@ class SSLEncoder(nn.Module):
             x = self.layer_representations(wav)
             if self.ssl_grad_mult != 1.0:
                 x = GradMultiply.apply(x, self.ssl_grad_mult)
-        return self.backend(x)
+        # back-end always in fp32: the official recipes train in fp32, and with the large SGD LR of the
+        # wespeaker frozen stage (0.1 x scale_ratio) fp16 activations of MHFA can overflow
+        with torch.autocast(device_type=x.device.type, enabled=False):
+            return self.backend(x.float())
 
     def n_params(self):
         return sum(p.numel() for p in self.parameters())

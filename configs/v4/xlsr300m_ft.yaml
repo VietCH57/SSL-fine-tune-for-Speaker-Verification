@@ -12,7 +12,7 @@ musan_path: /kaggle/input/datasets/nhattruongdev/musan-noise
 rir_path:   /kaggle/input/datasets/nhattruongdev/rirs-noises
 speed_perturb: [0.9, 1.1]   # NOT in the official recipes: kept so that teacher and ReDimNet student share the 5130 classes (KD)
 narrowband_prob: 0.0
-amp: true                   # T4: fp16 autocast (SLT22 has --mixedprec; wespeaker_ssl_public enable_amp: False)
+amp: true                   # T4: fp16 autocast (official runs are fp32: SLT22 --mixedprec has its GradScaler commented out; wespeaker enable_amp: False). MHFA + head stay fp32
 n_cpu: 4
 log_interval: 20
 keep_last: 1
@@ -44,7 +44,7 @@ lr_scale_base: 64
 reg_type: none
 max_epoch: 5
 test_step: 1
-grad_clip: 0
+grad_clip: 5.0                # wespeaker/utils/executor_hubert.py: clip_grad_norm_(model.parameters(), max_norm=5.0)
 # data: num_frms 300 (10 ms) = 3.0 s, aug_prob 0.6, filter min/max_num_frames 100/800 = 1-8 s
 crop_sec: [3.0]
 aug_mode: wespeaker

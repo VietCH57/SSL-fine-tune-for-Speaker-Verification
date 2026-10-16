@@ -1,8 +1,10 @@
 # Chạy trên Kaggle (2× T4)
 
-Có hai notebook, mỗi mô hình một notebook, chạy **lần lượt**:
-1. `vi_sred26_teacher_xlsr300m.ipynb`
-2. `vi_sred26_teacher_wavlm_large.ipynb`
+Một notebook `vi_sred26_teacher_ssl_mhfa.ipynb` dùng cho cả hai mô hình. Chỉ cần đổi biến `SSL` ở ô cấu hình, mỗi lần chạy một mô hình:
+1. `SSL = 'xlsr300m'` (chạy trước);
+2. `SSL = 'wavlm_large'`.
+
+Config, thư mục output và tên file nộp đều tự đổi theo `SSL`.
 
 ## Chuẩn bị
 - **Accelerator:** GPU T4 x2.
@@ -37,7 +39,7 @@ Thời gian mỗi epoch phụ thuộc batch và gradient checkpointing. Xem dòn
 ## Các biến cấu hình
 | Biến | Mặc định | Ý nghĩa |
 |---|---|---|
-| `SSL` | theo notebook | `xlsr300m` / `wavlm_large` |
+| `SSL` | `'xlsr300m'` | `xlsr300m` / `wavlm_large` |
 | `RECIPE` | `slt22` | `slt22` / `v4` (xem README mục 3) |
 | `INPUT_NORM` | `None` | `None` = theo config (`utterance`); `'none'` = waveform thô như code MHFA |
 | `OVERRIDES` | `{}` | ghi đè tuỳ chọn cho từng stage |

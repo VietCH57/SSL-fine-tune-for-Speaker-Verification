@@ -10,7 +10,7 @@ musan_path: /kaggle/input/datasets/nhattruongdev/musan-noise
 rir_path:   /kaggle/input/datasets/nhattruongdev/rirs-noises
 speed_perturb: [0.9, 1.1]   # NOT in the official recipes: kept so that teacher and ReDimNet student share the 5130 classes (KD)
 narrowband_prob: 0.0
-amp: true                   # T4: fp16 autocast (SLT22 has --mixedprec; wespeaker_ssl_public enable_amp: False)
+amp: true                   # T4: fp16 autocast (official runs are fp32: SLT22 --mixedprec has its GradScaler commented out; wespeaker enable_amp: False). MHFA + head stay fp32
 n_cpu: 4
 log_interval: 20
 keep_last: 1
@@ -39,7 +39,7 @@ reg_type: slt22
 reg_weight: 0.01              # weight_finetuning_reg
 max_epoch: 15
 test_step: 1
-grad_clip: 0
+grad_clip: 0                  # SpeakerNet.py: no clipping
 # data (DatasetLoader.py): max_frames 300 -> 48240 samples, voxceleb_trainer augmentation, uniform over 6 types
 crop_sec: [3.015]
 aug_mode: kaldi

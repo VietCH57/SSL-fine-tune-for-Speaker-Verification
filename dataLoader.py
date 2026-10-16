@@ -16,7 +16,7 @@ Optional (both modes):
 The loader returns raw 16 kHz waveforms: ReDimNet computes its features inside the model.
 '''
 
-import glob, math, os, random
+import glob, hashlib, json, math, os, random, tempfile
 from fractions import Fraction
 import numpy, soundfile, torch
 from scipy import signal
@@ -108,6 +108,25 @@ class CropBatchSampler(torch.utils.data.Sampler):
         return self.n // self.bs if self.drop_last else math.ceil(self.n / self.bs)
 
 
+def _durations(train_list, train_path, paths):
+    """Durations (s) of the training files, cached in the temp dir so later stages / ranks do not rescan."""
+    key = hashlib.md5(('%s|%s|%d' % (os.path.abspath(train_list), os.path.abspath(train_path), len(paths))).encode()).hexdigest()[:12]
+    cache = os.path.join(tempfile.gettempdir(), 'ssl_sv_durations_%s.json' % key)
+    try:
+        with open(cache) as f:
+            d = json.load(f)
+        if all(p in d for p in paths):
+            return d
+    except (OSError, ValueError):
+        pass
+    d = {p: soundfile.info(os.path.join(train_path, p)).duration for p in paths}
+    tmp = '%s.%d.tmp' % (cache, os.getpid())
+    with open(tmp, 'w') as f:
+        json.dump(d, f)
+    os.replace(tmp, cache)
+    return d
+
+
 class TrainSet(torch.utils.data.Dataset):
     def __init__(self, train_list, train_path, musan_path='', rir_path='',
                  aug_probs=(1, 1, 1, 1, 1, 1), snr_noise=(0, 15), snr_speech=(13, 20), snr_music=(5, 15),
@@ -118,9 +137,10 @@ class TrainSet(torch.utils.data.Dataset):
         self.spk2id = speaker_dict(train_list)
         spks, paths = read_list(train_list)
         if min_dur > 0 or max_dur > 0:   # wespeaker filter(min_num_frames, max_num_frames)
+            durs = _durations(train_list, train_path, paths)
             keep = []
             for s_, p_ in zip(spks, paths):
-                d = soundfile.info(os.path.join(train_path, p_)).duration
+                d = durs[p_]
                 if d >= min_dur and (max_dur <= 0 or d <= max_dur):
                     keep.append((s_, p_))
             if verbose:

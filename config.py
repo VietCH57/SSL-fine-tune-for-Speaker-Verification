@@ -122,7 +122,7 @@ def build_parser():
     g.add_argument('--reg_type', type=str, default='slt22', choices=['none', 'slt22'],
                    help='slt22: loss/loss.detach() + w*||theta-theta0||/||theta-theta0||.detach() (SpeakerNet.py)')
     g.add_argument('--reg_weight', type=float, default=0.01, help='SLT22 weight_finetuning_reg (yaml: 0.01)')
-    g.add_argument('--grad_clip', type=float, default=0.0, help='Clip grad-norm (0 = off; neither official recipe clips)')
+    g.add_argument('--grad_clip', type=float, default=0.0, help='Clip grad-norm (0 = off). SLT22: off; wespeaker_ssl_public executor_hubert.py: 5.0')
     g.add_argument('--amp', type=_str2bool, default=True, help='fp16 autocast (T4 has no bf16; SLT22 has --mixedprec, wespeaker_ssl_public enable_amp False)')
 
     g = p.add_argument_group('Evaluation')

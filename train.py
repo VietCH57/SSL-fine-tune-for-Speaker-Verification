@@ -151,6 +151,9 @@ def main():
         t0 = time.time()
         st = s.train_network(epoch, loader)
         train_min = (time.time() - t0) / 60
+        if not math.isfinite(st['loss']):
+            raise RuntimeError('epoch %d: training loss is %s (diverged). Last checkpoint left untouched: %s'
+                               % (epoch, st['loss'], last_ckpt))
         if epoch % args.test_step == 0 or epoch == args.max_epoch:
             msg = '%d epoch, LR %.2e/%.2e, m %.3f, LOSS %.4f, ACC %.2f%%, DIST %.3f' % (
                 epoch, st['lr_first'], st['lr_last'], st['margin'], st['loss'], st['acc'], st['reg_l2'])

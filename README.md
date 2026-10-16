@@ -36,6 +36,7 @@ Cả hai bộ code gốc chỉ có recipe cho WavLM / HuBERT. **XLS-R chưa có 
 |---|---|---|
 | Phần được train | `encoder.layers` + MHFA + head (CNN chạy `no_grad`) | như `main` |
 | Optimizer | AdamW, weight decay 0,01 (mặc định của torch: `optimizer/adamw.py` chỉ truyền `lr`) | như `main` |
+| Cắt gradient | không | không |
 | LR | MHFA + head 5e-3; mỗi layer 2e-5 × `LLRD_factor`^i, với `LLRD_factor` = 1 | tiếp tục chuỗi giảm (`lr_epoch_offset: 15`) |
 | Lịch LR | StepLR γ 0,95 mỗi epoch | như `main` |
 | Điều chuẩn | `nloss/nloss.detach() + 0.01·l2/(l2.detach()+1e-5)`, với l2 = Σ‖θ−θ_pretrained‖₂ | như `main` |
@@ -53,7 +54,8 @@ Số epoch và margin của LMF lấy theo bài báo (thêm 3 epoch, m 0,5); đ�
 | | `frozen` | `ft` | `lmft` |
 |---|---|---|---|
 | Backbone | đóng băng (`feature_grad_mult` 0) | train toàn bộ, `feature_grad_mult` 0,1 | như `ft` |
-| Optimizer | SGD, momentum 0,9, weight decay 1e-7 | AdamW, weight decay 1e-7 | AdamW |
+| Optimizer | SGD, momentum 0,9 (Nesterov), weight decay 1e-7 | AdamW, weight decay 1e-7 | AdamW |
+| Cắt gradient | `clip_grad_norm_` max_norm 5,0 (`executor_hubert.py`) | như `frozen` | như `frozen` |
 | LR (ExponentialDecrease, × `scale_ratio`) | 0,1 → 5e-3, warm-up 3 epoch từ 0 | 5e-5 → 1e-6, warm-up 1 | 1e-5 → 1e-7, warm-up 1 |
 | Head | ArcMargin inter-top-k sub-center (K 3, k_top 5, mp 0,06), s 32 | như `frozen` | như `frozen` |
 | Margin | 0 → 0,2 (tăng từ epoch 2, cố định từ epoch 5) | 0,2 | 0,5 |
@@ -61,6 +63,8 @@ Số epoch và margin của LMF lấy theo bài báo (thêm 3 epoch, m 0,5); đ�
 | Batch hiệu dụng | 512 | 128 | 64 |
 | Số epoch | 10 | 5 | 3 |
 | Augment | `aug_prob` 0,6: reverb hoặc một file MUSAN; peak-normalise; lọc câu 1–8 s | như `frozen` | như `frozen` |
+
+Lưu ý: bộ lọc 1–8 s (`min/max_num_frames` 100/800) là của bản gốc, nhưng trên Vi-SRED26 nó bỏ khoảng 46% số câu train (còn 28.170 / 52.564 câu, vẫn đủ 1.710 speaker). Muốn giữ lại thì đổi `max_dur`; khi đó cần ghi rõ là khác bản gốc.
 
 - **Batch:** bản gốc dùng 4 GPU với batch mỗi GPU lần lượt 128 / 32 / 16. Ở đây `batch_size` là batch hiệu dụng tương ứng, và LR được nhân với `scale_ratio` = batch hiệu dụng / 64, đúng như `train_hubert.py`.
 - **Đánh giá:** cosine sau khi trừ mean của embedding tập train (`select_score: center`).
@@ -70,7 +74,7 @@ Số epoch và margin của LMF lấy theo bài báo (thêm 3 epoch, m 0,5); đ�
 | Khác biệt | Lý do |
 |---|---|
 | **Speed perturb 0,9 / 1,1 → 5.130 lớp** (cả hai recipe gốc đều không dùng; v4 ghi rõ `speed_perturb: False`) | để thầy và trò ReDimNet-M có cùng bộ lớp khi distill logit |
-| **AMP fp16** (SLT22 có `--mixedprec`; v4 đặt `enable_amp: False`) | T4 chạy fp32 chậm khoảng 2,6 lần (đã đo bằng benchmark notebook) |
+| **AMP fp16 cho backbone** (cả hai bản gốc đều chạy fp32: SLT22 có cờ `--mixedprec` nhưng phần GradScaler/autocast bị comment; v4 đặt `enable_amp: False`). MHFA và head luôn chạy fp32. | T4 chạy fp32 chậm khoảng 2,6 lần (đã đo bằng benchmark notebook). Để MHFA ở fp16 có thể làm activation tràn số với LR lớn của stage `frozen`. |
 | **Batch đạt được bằng cộng dồn gradient** trên 2 GPU (`batch_size` × `accum_steps`) thay vì nhiều GPU | phần cứng. Cộng dồn gradient cho cùng gradient trung bình. Với `slt22`, 120 là giá trị trong yaml (gốc là batch mỗi GPU; số GPU của bài báo không được ghi trong repo). |
 | **`input_norm: utterance`** | theo `preprocessor_config.json` của checkpoint HF; có thể tắt |
 | **Không có sampler "mỗi speaker tối đa một câu trong batch"** của SLT22 | dùng chung sampler của repo ReDimNet |
