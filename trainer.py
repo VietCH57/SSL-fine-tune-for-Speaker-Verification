@@ -253,9 +253,13 @@ class Trainer(nn.Module):
         if labels[0] is None:
             raise ValueError('%s has no labels' % eval_list)
         files = sorted(set(enroll) | set(test))
+        if hasattr(self, 'optim'):              # free gradients of the last step before embedding long utterances
+            self.optim.zero_grad(set_to_none=True)
+        if self.device.type == 'cuda':
+            torch.cuda.empty_cache()
         kw = dict(device=self.device, mode=a.eval_mode, eval_sec=a.eval_sec, num_eval=a.num_eval,
                   min_sec=a.eval_min_sec, max_sec=a.eval_max_sec, len_tol=a.eval_len_tol,
-                  max_batch=a.eval_batch, amp=a.eval_amp, workers=self.workers(), progress=False)
+                  max_batch=a.eval_batch, max_batch_sec=a.eval_batch_sec, amp=a.eval_amp, workers=self.workers(), progress=False)
         emb = self._embed(files, eval_path, kw)
         cemb = self._embed(cohort[0], cohort[1], kw) if (cohort and cohort[0]) else None
         if not du.is_main():

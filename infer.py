@@ -50,6 +50,7 @@ def build_parser():
     p.add_argument('--eval_max_sec', type=float, default=20.0, help='wespeaker_ssl_public cuts inputs to 20 s')
     p.add_argument('--eval_len_tol', type=float, default=0.0, help='0 = exact full-utterance embeddings (recommended for submissions)')
     p.add_argument('--eval_batch', type=int, default=16)
+    p.add_argument('--eval_batch_sec', type=float, default=120.0, help='Max total audio (s) per batch')
     p.add_argument('--amp', action='store_true', help='fp16 inference (faster, tiny numerical differences)')
     p.add_argument('--workers', type=int, default=4)
     p.add_argument('--dcf_ptarget', type=str, default='0.05,0.01')
@@ -88,7 +89,7 @@ def main():
 
     kw = dict(device=args.device, mode=args.eval_mode, eval_sec=args.eval_sec, num_eval=args.num_eval,
               min_sec=args.eval_min_sec, max_sec=args.eval_max_sec, len_tol=args.eval_len_tol,
-              max_batch=args.eval_batch, amp=args.amp, workers=args.workers)
+              max_batch=args.eval_batch, max_batch_sec=args.eval_batch_sec, amp=args.amp, workers=args.workers)
     encoder, extra = None, {}
 
     def get_encoder():

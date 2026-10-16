@@ -145,7 +145,7 @@ def extract_embeddings(encoder, files, root, device='cuda', mode='full', eval_se
             full[idx] = e
     if mode in ('crops', 'both'):
         L = int(eval_sec * SR)
-        group = max(1, max_batch // num_eval)
+        group = max(1, min(max_batch // num_eval, int(max_batch_sec // (eval_sec * num_eval))))
         dl = torch.utils.data.DataLoader(_CropSet(paths, group, L, num_eval), **kw)
         for idx, x in (tqdm.tqdm(dl, desc='embed crops', mininterval=30) if progress else dl):
             e = _forward(encoder, x, device, amp).cpu().numpy().reshape(len(idx), num_eval, -1).mean(1)

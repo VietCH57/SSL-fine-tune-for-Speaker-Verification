@@ -138,6 +138,7 @@ def build_parser():
     g.add_argument('--eval_max_sec', type=float, default=20.0, help='wespeaker_ssl_public cuts inputs to 20 s')
     g.add_argument('--eval_len_tol', type=float, default=0.02)
     g.add_argument('--eval_batch', type=int, default=32)
+    g.add_argument('--eval_batch_sec', type=float, default=120.0, help='Max total audio (s) per eval batch: bounds GPU memory with long utterances')
     g.add_argument('--eval_amp', type=_str2bool, default=True)
     g.add_argument('--cohort_size', type=int, default=1000, help='Training files for the center (mean) of "center" scoring; 0 = off')
     g.add_argument('--select_score', type=str, default='cos', choices=['cos', 'center'])
